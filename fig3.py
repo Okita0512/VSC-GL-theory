@@ -31,7 +31,10 @@ TEMPERATURE_SCAN_C = (10.0, 85.0)
 TEMPERATURE_VALUES_C = [0.0, 10.0, 20.0, 30.0]
 OMEGA_SQ_VALUES_CM2 = [1000.0, 1100.0, 1200.0, 1300.0, 1400.0]
 PANEL_B_OMEGA_SQ_CM2 = 1400.0
-PANEL_B_EXPERIMENT_DATA_PATH = "exp_data"
+PANEL_A_EXPERIMENT_DATA_PATH = (
+    "exp_data/figure5A_toluene_benzeneD6_digitized.csv"
+)
+PANEL_B_EXPERIMENT_DATA_PATH = "exp_data/figure5B_temperature_digitized.txt"
 OMEGA_SCAN_CM = (0.0, 50.0)
 NUM_POINTS = 801
 
@@ -137,14 +140,16 @@ def main() -> None:
     normalized_off_resonance = (
         np.clip(intensity_off_resonance - 1.0, 0.0, None) / normalization
     )
-    ax_abs.plot(
+    theory_handles = []
+    (off_resonance_line,) = ax_abs.plot(
         omega_sq_scan,
         normalized_off_resonance,
         color="black",
         linestyle="--",
         linewidth=1.8,
-        label=rf"Off-resonant, $\Delta = {DELTA_OFF_CM:.0f}$ cm$^{{-1}}$, $T = 0^\circ$C",
+        label=rf"Off-res., $\Delta={DELTA_OFF_CM:.0f}$ cm$^{{-1}}$, $T=0^\circ$C",
     )
+    theory_handles.append(off_resonance_line)
 
     for color, temperature_c in zip(colors, TEMPERATURE_VALUES_C):
         intensity_vs_omega = _rayleigh_enhancement_omega(
@@ -155,12 +160,86 @@ def main() -> None:
         excess_vs_omega = np.clip(intensity_vs_omega - 1.0, 0.0, None)
         normalized_vs_omega = excess_vs_omega / normalization
 
-        ax_abs.plot(
+        (temperature_line,) = ax_abs.plot(
             omega_sq_scan,
             normalized_vs_omega,
             color=color,
             label=rf"$T = {temperature_c:.0f}^\circ$C",
         )
+        theory_handles.append(temperature_line)
+
+    # Map composition with only the blue experimental Omega_R^2 markers.
+    # At shared compositions np.interp returns the measured blue value exactly;
+    # otherwise it performs the required piecewise-linear interpolation.
+    panel_a_data_path = Path(__file__).resolve().parent / PANEL_A_EXPERIMENT_DATA_PATH
+    if not panel_a_data_path.exists():
+        raise FileNotFoundError(
+            f"Required panel-a experimental data not found: {panel_a_data_path}"
+        )
+    panel_a_data = np.genfromtxt(
+        panel_a_data_path,
+        delimiter=",",
+        names=True,
+        dtype=float,
+    )
+    rabi_mask = np.isfinite(panel_a_data["rabi_splitting_sq_cm_minus2"])
+    rabi_compositions = panel_a_data["toluene_vol_percent"][rabi_mask]
+    rabi_omega_sq = panel_a_data["rabi_splitting_sq_cm_minus2"][rabi_mask]
+    rabi_order = np.argsort(rabi_compositions)
+    rabi_compositions = rabi_compositions[rabi_order]
+    rabi_omega_sq = rabi_omega_sq[rabi_order]
+
+    on_mask = np.isfinite(panel_a_data["rayleigh_on_raw"])
+    off_mask = np.isfinite(panel_a_data["rayleigh_off_raw"])
+    rayleigh_compositions = panel_a_data["toluene_vol_percent"]
+    mapped_compositions = np.concatenate(
+        (rayleigh_compositions[on_mask], rayleigh_compositions[off_mask])
+    )
+    if (
+        mapped_compositions.min() < rabi_compositions.min()
+        or mapped_compositions.max() > rabi_compositions.max()
+    ):
+        raise ValueError("Rayleigh compositions fall outside the blue-data range.")
+
+    omega_sq_on = np.interp(
+        rayleigh_compositions[on_mask], rabi_compositions, rabi_omega_sq
+    )
+    omega_sq_off = np.interp(
+        rayleigh_compositions[off_mask], rabi_compositions, rabi_omega_sq
+    )
+    # Match the maximum-normalized Figure 5B experimental convention: divide
+    # both raw series by max(on resonance), with no background subtraction.
+    experimental_normalization = float(
+        np.nanmax(panel_a_data["rayleigh_on_raw"][on_mask])
+    )
+    normalized_on_experiment = (
+        panel_a_data["rayleigh_on_raw"][on_mask] / experimental_normalization
+    )
+    normalized_off_experiment = (
+        panel_a_data["rayleigh_off_raw"][off_mask] / experimental_normalization
+    )
+    on_experiment = ax_abs.scatter(
+        omega_sq_on,
+        normalized_on_experiment,
+        marker="o",
+        s=42,
+        facecolors="none",
+        edgecolors=colors[2],
+        linewidth=1.2,
+        zorder=6,
+        label="Experiment, on-res.",
+    )
+    off_experiment = ax_abs.scatter(
+        omega_sq_off,
+        normalized_off_experiment,
+        marker="D",
+        s=34,
+        facecolors="none",
+        edgecolors="black",
+        linewidth=1.2,
+        zorder=6,
+        label="Experiment, off-res.",
+    )
 
     # Right panel: direct Eq. 5-6 Rayleigh readout vs T at fixed Omega^2.
     panel_b_intensity = _rayleigh_enhancement_T(
@@ -228,7 +307,20 @@ def main() -> None:
     ax_abs.set_ylabel("Normalized Rayleigh enhancement")
     ax_abs.set_xlim(700.0, 1850.0)
     ax_abs.set_ylim(-0.05, 1.19)
-    legend = ax_abs.legend(frameon=False, loc="upper left")
+    legend = ax_abs.legend(
+        handles=theory_handles,
+        frameon=False,
+        loc="upper left",
+        fontsize=7.5,
+        handlelength=2.3,
+    )
+    ax_abs.add_artist(legend)
+    legend_experiment = ax_abs.legend(
+        handles=[off_experiment, on_experiment],
+        frameon=False,
+        loc="upper right",
+        fontsize=7.5,
+    )
     legend_red = ax_red.legend(frameon=False, loc="lower left", fontsize=10)
     ax_red.set_xlabel(r"Temperature $T$ ($^\circ$C)")
     ax_red.set_ylabel("Normalized Rayleigh enhancement")
@@ -280,6 +372,7 @@ def main() -> None:
         clip_on=False,
     )
     style_legend(legend)
+    style_legend(legend_experiment)
     style_legend(legend_red)
     style_axis_text(ax_abs)
     style_axis_text(ax_red)

@@ -1,4 +1,4 @@
-"""Fig. 1b schematic: Landau free-energy softening of structural order."""
+"""TOC schematic: effective Landau free-energy softening of structural order."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# Landau parameters for a schematic free energy:
-# F(m) = 1/2 a_eff m^2 + 1/4 b m^4, with b > 0.
-B_QUARTIC = 1.0
+# Landau parameters for a schematic effective free-energy density:
+# f_eff(m) = 1/2 a_m^eff m^2 + 1/4 b_m^eff m^4, with b_m^eff > 0.
+B_EFF_QUARTIC = 1.0
 A_EFF_VALUES = {
     r"$a_m^{\rm eff}>0$": 1.0,
     r"$a_m^{\rm eff}=0$": 0.0,
@@ -22,15 +22,17 @@ FIGSIZE = (3.2, 3.0)
 PNG_DPI = 600
 
 
-def landau_free_energy(m: np.ndarray | float, a_eff: float, b: float) -> np.ndarray | float:
-    """Return the quartic Landau free energy for a structural order parameter."""
-    return 0.5 * a_eff * m**2 + 0.25 * b * m**4
+def effective_free_energy_density(
+    m: np.ndarray | float, a_eff: float, b_eff: float
+) -> np.ndarray | float:
+    """Return the effective quartic free-energy density for structural order."""
+    return 0.5 * a_eff * m**2 + 0.25 * b_eff * m**4
 
 
-def minimum_positions(a_eff: float, b: float) -> list[float]:
+def minimum_positions(a_eff: float, b_eff: float) -> list[float]:
     """Analytic minimum positions of the schematic Landau landscape."""
     if a_eff < 0.0:
-        m0 = float(np.sqrt(-a_eff / b))
+        m0 = float(np.sqrt(-a_eff / b_eff))
         return [m0]
     return [0.0]
 
@@ -77,12 +79,12 @@ def main() -> None:
 
     for label, a_eff in A_EFF_VALUES.items():
         # No vertical shift is applied here: this is the standard Landau
-        # schematic with F(0) = 0 for every value of a_m^eff.
-        f_landau = landau_free_energy(m, a_eff, B_QUARTIC)
+        # schematic with f_eff(0) = 0 for every value of a_m^eff.
+        f_landau = effective_free_energy_density(m, a_eff, B_EFF_QUARTIC)
         ax.plot(m, f_landau, label=label, **curve_styles[a_eff])
 
-        for m_min in minimum_positions(a_eff, B_QUARTIC):
-            f_min = landau_free_energy(m_min, a_eff, B_QUARTIC)
+        for m_min in minimum_positions(a_eff, B_EFF_QUARTIC):
+            f_min = effective_free_energy_density(m_min, a_eff, B_EFF_QUARTIC)
             ax.plot(
                 m_min,
                 f_min,
@@ -125,7 +127,7 @@ def main() -> None:
     ax.text(
         0.64,
         -0.45,
-        r"$F(m)=\frac{a_m^{\rm eff}}{2} m^2 + \frac{b_m}{4} m^4$",
+        r"$f_{\rm eff}(m)=\frac{a_m^{\rm eff}}{2} m^2 + \frac{b_m^{\rm eff}}{4} m^4$",
         color="#333333",
         ha="left",
         va="center",
@@ -152,7 +154,7 @@ def main() -> None:
     # )
 
     ax.set_xlabel("")
-    # ax.set_ylabel(r"$F(m)$", fontsize=16)
+    # ax.set_ylabel(r"$f_{\rm eff}(m)$", fontsize=16)
     ax.set_xlim(0.0, 2.25)
     ax.set_ylim(-0.34, 1.6)
     ax.set_xticks([])

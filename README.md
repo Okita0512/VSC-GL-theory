@@ -4,6 +4,8 @@ Python scripts and outputs for the figures of my manuscript
 "A Mesoscopic Ginzburg--Landau Model for Vibrational Strong Coupling Enhanced Rayleigh Scattering in Molecular Liquids" (to be appeared on arXiv).
 First released on 07/16/2026.
 
+updated on 09/16/2026 in response to review comments
+
 ## Contents
 
 - `model.py` — shared model definitions (`ModelParams`, default parameters) and

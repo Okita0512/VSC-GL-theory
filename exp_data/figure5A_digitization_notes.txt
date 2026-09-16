@@ -1,0 +1,78 @@
+Figure 5A digitization notes
+============================
+
+Source
+------
+File: Scatttering_manuscript.pdf
+PDF page: 11, Figure 5A (left panel)
+System: toluene:benzene-D6; toluene C-H stretch at 3027 cm^-1; room temperature
+Series: black on-resonance Rayleigh markers, red off-resonance Rayleigh markers,
+and blue squared-Rabi-splitting markers on the right axis
+
+The page was rendered at 600 dpi (5100 x 6600 pixels), and Figure 5A was
+inspected as an enlarged crop. Marker centers were digitized from that render
+and cross-checked against the PDF's native 1431 x 522 embedded raster. Only
+the square marker centers were used; the black, red, and blue lines were
+excluded because the source caption identifies them as guides to the eye.
+
+Axis calibration
+----------------
+Pixel coordinates below refer to the 600-dpi full-page render, with the origin
+at the upper left. Least-squares linear calibration of the visible ticks gave:
+
+x axis (% toluene):
+  (1084.184 px, 40%), (1491.453 px, 60%),
+  (1899.383 px, 80%), (2306.338 px, 100%)
+  x_vol_percent = 0.04908708 * x_pixel - 13.21926422
+
+left y axis (Rayleigh intensity, a.u.):
+  (919.777 px, 16), (1163.816 px, 12),
+  (1408.100 px, 8), (1652.076 px, 4)
+  intensity_au = -0.0163855057 * y_pixel + 31.0708164
+
+right y axis (squared Rabi splitting, cm^-2):
+  (1163.800 px, 1500), (1469.394 px, 1000),
+  (1774.089 px, 500)
+  omega_R_sq_cm_minus2 = -1.63856792 * y_pixel + 3407.21067
+
+The native-raster cross-check gave one-pixel uncertainties of approximately
+0.134 vol%, 0.0447 a.u., and 4.47 cm^-2. The black markers at 30%, 40%, and
+50% are partly overplotted by the red markers/guide traces; their centers were
+recovered from the visible square edges and assigned a conservative 1.5-pixel
+(about 0.067 a.u.) reading uncertainty. These digitization uncertainties are
+not experimental error bars and therefore are not included as error bars.
+
+Marker and error-bar handling
+-----------------------------
+Eight marker centers were resolved for each series at 30, 40, ..., 100 vol%
+toluene. No error bars are present or reliably resolvable in panel A, so the
+two CSV error columns are blank. The error bars visible in Figure 5 belong to
+panel B and were not transferred to panel A.
+
+Composition-to-Omega^2 mapping
+------------------------------
+For a Rayleigh composition x, the plotting code evaluates
+
+  Omega_R^2(x) = interp[x; {x_i, Omega_R,i^2}]
+
+by piecewise-linear interpolation of only the digitized blue experimental
+series. All Rayleigh and blue markers in this panel share the same eight
+compositions, so the plotted points use the corresponding blue values
+directly; the interpolation implementation is retained for transparency and
+for any noncoincident compositions. No theoretical transition point, shift,
+rescaling, fit, or adjustable conversion coefficient is used.
+
+Normalization used in Figure 3a
+--------------------------------
+Following the maximum-normalized experimental convention already used by the
+published Figure 5B data in Figure 3b, define
+
+  N = max_j(rayleigh_on_raw_j) = 14.992888 a.u.
+  rayleigh_on_plot_j  = rayleigh_on_raw_j  / N
+  rayleigh_off_plot_j = rayleigh_off_raw_j / N
+  error_plot_j        = error_raw_j        / N, if errors are available
+
+The same on-resonance maximum is applied to both series, and no background is
+subtracted. This experimental normalization does not act on a theoretical
+curve. The existing T = 20 deg C GL curve and every GL/model parameter were
+retained unchanged; no parameter was fitted or recalibrated to these data.
